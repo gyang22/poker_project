@@ -1,0 +1,3 @@
+more shuffles
+fix high card not being in combo
+implement betting
