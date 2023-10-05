@@ -20,6 +20,19 @@ class Deck:
             for rank in range(Deck.NUM_RANKS):
                 self.cards.append(Card(suit, rank + 1))
         self.wastepile = []
+        self.on_board = []
+
+
+    def toggle_value(self, a, b):
+        for card in self.cards:
+            if card.rank == a:
+                card.rank = b
+        for card in self.on_board:
+            if card.rank == a:
+                card.rank = b
+        for card in self.wastepile:
+            if card.rank == a:
+                card.rank = b
 
 
     """
@@ -71,7 +84,9 @@ class Deck:
     Removes and returns the card on the top of the deck.
     """
     def deal(self):
-        return self.cards.pop()
+        dealt = self.cards.pop()
+        self.on_board.append(dealt)
+        return dealt
 
 
     """
