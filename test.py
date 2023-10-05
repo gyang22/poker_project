@@ -6,4 +6,5 @@ from PokerGame import PokerGame
 
 class TestPokerGame(unittest.TestCase):
     
-    def test_
+    def test_game(self):
+        pass
