@@ -1,11 +1,13 @@
 from Deck import Deck
 from Player import Player, BettingPlayer
+import numpy as np
 
 class PokerGame:
 
     FLOP_SIZE = 3
     HAND_SIZE = 5
     HOLE_AND_COMMUNITY_SIZE = 7
+    NUM_PLAYERS = 6
 
     RANKINGS = {"Royal Flush": 10,
                 "Straight Flush": 9,
@@ -19,7 +21,7 @@ class PokerGame:
                 "High Card": 1}
 
 
-    def __init__(self, min_bet, max_bet, *players):
+    def __init__(self, min_bet, max_bet, players):
         self.min_bet = min_bet
         self.max_bet = max_bet
         self.deck = Deck()
@@ -316,7 +318,7 @@ if __name__ == "__main__":
     a = BettingPlayer("Abby", 100)
     b = BettingPlayer("Brian", 100)
     c = BettingPlayer("Callux", 100)
-    game = PokerGame(1, 2, a, b, c)
+    game = PokerGame(1, 2, [a, b, c])
     
     game.play()
 

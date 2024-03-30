@@ -40,7 +40,7 @@ class Deck:
     Type can be "faro", "bridge".
     Returns none.
     """
-    def shuffle(self, type):
+    def shuffle(self, type="random"):
         if len(self.cards) != Deck.NUM_CARDS:
             raise Exception("Not all cards are in main pile, move cards from waste pile back to main pile.")
         if type == "faro":
