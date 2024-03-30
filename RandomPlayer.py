@@ -9,7 +9,9 @@ class RandomPlayer:
         self.actions = ["fold", "raise", "call", "check"]
         self.balance = starting_fortune
         self.raise_factor = raise_factor
-        self.hand = np.zeros(104) 
+        self.hand = [0] * 104
+        self.original_fortune = starting_fortune
+        self.readable_hand = []
 
     """
     Returns a str from ["fold", "raise", "call", "check"] or a subset depending on the current round, with uniform probability.
@@ -92,5 +94,7 @@ class RandomPlayer:
     def get_current_bet(self):
         return self.current_bet
     
-    def add_to_hand(self, card: Card):
-        self.hand[card.suit * 13 + card.rank - 1] += 1
+    def add_to_hand(self, cards):
+        for i, card in enumerate(cards):
+            self.hand[card.suit * 13 + card.rank - 1 + 52 * i] += 1
+        self.readable_hand.extend(cards)
