@@ -26,7 +26,7 @@ class RandomPlayer:
 
             # If another player has a higher bet, raise, call, or fold.
             if table_highest_bet > self.current_bet:
-                action = np.random.choice(self.actions[:3])
+                action = np.random.choice(self.actions[:3], p=(0.15, 0.3, 0.55))
                 if action == "raise":
                     self.__raise(table_highest_bet)
                 elif action == "call":
@@ -36,7 +36,7 @@ class RandomPlayer:
 
             # Otherwise, currently the highest bet or matching, raise or fold.
             else:
-                action = np.random.choice(self.actions[:2])
+                action = np.random.choice(self.actions[:2], p=(0.1, 0.9))
                 if action == "raise":
                     self.__raise(table_highest_bet)
                 elif action == "fold":
@@ -49,7 +49,7 @@ class RandomPlayer:
 
             # If another player has a higher bet, raise, call, or fold.
             if table_highest_bet > self.current_bet:
-                action = np.random.choice(self.actions[:3])
+                action = np.random.choice(self.actions[:3], p=(0.15, 0.3, 0.55))
                 if action == "raise":
                     self.__raise(table_highest_bet)
                 elif action == "call":
@@ -59,7 +59,7 @@ class RandomPlayer:
 
             # Otherwise, currently the highest bet or matching, raise, fold, or check.
             else:
-                action = np.random.choice(self.actions[:2] + self.actions[3:])
+                action = np.random.choice(self.actions[:2] + self.actions[3:], p=(0.15, 0.3, 0.55))
                 if action == "raise":
                     self.__raise(table_highest_bet)
                 elif action == "fold":
@@ -71,17 +71,17 @@ class RandomPlayer:
         
     def bet(self, amount: float):
         self.current_bet = min(self.balance, amount)
-
-            
+        self.balance -= self.current_bet
     
     def __raise(self, table_highest_bet: float):
         self.current_bet = min(table_highest_bet * self.raise_factor, self.balance)
+        self.balance -= self.current_bet
 
     def __call(self, table_highest_bet: float):
         self.current_bet = min(table_highest_bet, self.balance)
+        self.balance -= self.current_bet
 
     def __fold(self):
-        self.balance -= self.current_bet
         self.current_bet = 0
 
     def __check(self):
@@ -89,7 +89,7 @@ class RandomPlayer:
 
 
     def is_all_in(self):
-        return self.current_bet == self.balance
+        return self.balance == 0 and self.current_bet > 0
 
     def get_current_bet(self):
         return self.current_bet

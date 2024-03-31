@@ -38,10 +38,10 @@ def simulate_game(game: PokerGame, button_position: int):
     round_finished = False
     table_highest_bet = game.max_bet
 
+    raises = 0
+
     while not round_finished:
         if active_player not in folded_indexes:
-            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
-            print(active_player, action)
 
             player = game.players[active_player]
 
@@ -49,8 +49,11 @@ def simulate_game(game: PokerGame, button_position: int):
             cards_state = player.hand + [0] * 260
 
             # Record the balance, pot size, current bet, and other players' bets
-            fortune_state = [player.balance / player.original_fortune, game.pot, player.current_bet / player.balance]
-            fortune_state.extend([p.current_bet / p.balance for p in game.players])
+            fortune_state = [player.balance, game.pot, player.current_bet]
+            fortune_state.extend([p.current_bet if p.id not in folded_indexes else 0.0 for p in game.players])
+
+            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
+            print(active_player, action)
 
             # Record the round number, relative position to the button, and action taken
             logistic_state = [round_number / 3.0, abs(active_player - button_position) / 5.0, action_to_int(action) / 3.0]
@@ -60,9 +63,14 @@ def simulate_game(game: PokerGame, button_position: int):
 
             player_data[active_player].append(game_state)
 
-            if action == "raise" or action == "call":
+            if action == "raise":
                 table_highest_bet = game.players[active_player].get_current_bet()
                 game.pot += table_highest_bet - player_previous_bet
+                raises = 0
+            elif action == "call":
+                table_highest_bet = game.players[active_player].get_current_bet()
+                game.pot += table_highest_bet - player_previous_bet
+                raises += 1
             elif action == "fold":
                 folded_indexes.add(active_player)
                 player_outcomes[active_player] = -1 * player_previous_bet
@@ -74,7 +82,7 @@ def simulate_game(game: PokerGame, button_position: int):
             player_outcomes[winner] = game.pot
             return player_outcomes, player_data
         
-        if check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes):
+        if check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes) or raises >= 6 - len(folded_indexes) - 1:
             round_finished = True
 
         active_player = (active_player + 1) % game.NUM_PLAYERS
@@ -90,11 +98,10 @@ def simulate_game(game: PokerGame, button_position: int):
 
     turns = 0
     remaining = game.NUM_PLAYERS - len(folded_indexes)
+    raises = 0
 
     while not round_finished:
         if active_player not in folded_indexes:
-            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
-            print(active_player, action)
 
             # Record the player hand, 3 flopped cards, and the unknown 2 community cards
             board = [0] * 260
@@ -103,8 +110,11 @@ def simulate_game(game: PokerGame, button_position: int):
             cards_state = player.hand + board
 
             # Record the balance, pot size, current bet, and other players' bets
-            fortune_state = [player.balance / player.original_fortune, game.pot, player.current_bet / player.balance]
-            fortune_state.extend([p.current_bet / p.balance for p in game.players])
+            fortune_state = [player.balance, game.pot, player.current_bet]
+            fortune_state.extend([p.current_bet if p.id not in folded_indexes else 0.0 for p in game.players])
+
+            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
+            print(active_player, action)
 
             # Record the round number, relative position to the button, and action taken
             logistic_state = [round_number / 3.0, abs(active_player - button_position) / 5.0, action_to_int(action) / 3.0]
@@ -114,9 +124,14 @@ def simulate_game(game: PokerGame, button_position: int):
 
             player_data[active_player].append(game_state)
             
-            if action == "raise" or action == "call":
+            if action == "raise":
                 table_highest_bet = game.players[active_player].get_current_bet()
                 game.pot += table_highest_bet - player_previous_bet
+                raises = 0
+            elif action == "call":
+                table_highest_bet = game.players[active_player].get_current_bet()
+                game.pot += table_highest_bet - player_previous_bet
+                raises += 1
             elif action == "fold":
                 folded_indexes.add(active_player)
                 player_outcomes[active_player] = -1 * player_previous_bet
@@ -129,7 +144,7 @@ def simulate_game(game: PokerGame, button_position: int):
             player_outcomes[winner] = game.pot
             return player_outcomes, player_data
         
-        if turns >= remaining and check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes):
+        if turns >= remaining and check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes) or raises >= 6 - len(folded_indexes) - 1:
             round_finished = True
 
         active_player = (active_player + 1) % game.NUM_PLAYERS
@@ -145,21 +160,23 @@ def simulate_game(game: PokerGame, button_position: int):
 
     turns = 0
     remaining = game.NUM_PLAYERS - len(folded_indexes)
+    raises = 0
 
     while not round_finished:
         if active_player not in folded_indexes:
-            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
-            print(active_player, action)
 
-            # Record the player hand, 3 flopped cards, and the unknown 2 community cards
+            # Record the player hand, 4 known cards, and the unknown 1 community card
             board = [0] * 260
             for i, card in enumerate(game.board):
                 board[card.suit * 13 + card.rank - 1 + 52 * i] += 1
             cards_state = player.hand + board
 
             # Record the balance, pot size, current bet, and other players' bets
-            fortune_state = [player.balance / player.original_fortune, game.pot, player.current_bet / player.balance]
-            fortune_state.extend([p.current_bet / p.balance for p in game.players])
+            fortune_state = [player.balance, game.pot, player.current_bet]
+            fortune_state.extend([p.current_bet if p.id not in folded_indexes else 0.0 for p in game.players])
+
+            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
+            print(active_player, action)    
 
             # Record the round number, relative position to the button, and action taken
             logistic_state = [round_number / 3.0, abs(active_player - button_position) / 5.0, action_to_int(action) / 3.0]
@@ -184,7 +201,7 @@ def simulate_game(game: PokerGame, button_position: int):
             player_outcomes[winner] = game.pot
             return player_outcomes, player_data
         
-        if turns >= remaining and check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes):
+        if turns >= remaining and check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes) or raises >= 6 - len(folded_indexes) - 1:
             round_finished = True
 
         active_player = (active_player + 1) % game.NUM_PLAYERS
@@ -200,21 +217,23 @@ def simulate_game(game: PokerGame, button_position: int):
 
     turns = 0
     remaining = game.NUM_PLAYERS - len(folded_indexes)
+    raises = 0
 
     while not round_finished:
         if active_player not in folded_indexes:
-            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
-            print(active_player, action)
 
-            # Record the player hand, 3 flopped cards, and the unknown 2 community cards
+            # Record the player hand and 5 community cards
             board = [0] * 260
             for i, card in enumerate(game.board):
                 board[card.suit * 13 + card.rank - 1 + 52 * i] += 1
             cards_state = player.hand + board
 
             # Record the balance, pot size, current bet, and other players' bets
-            fortune_state = [player.balance / player.original_fortune, game.pot, player.current_bet / player.balance]
-            fortune_state.extend([p.current_bet / p.balance for p in game.players])
+            fortune_state = [player.balance, game.pot, player.current_bet]
+            fortune_state.extend([p.current_bet if p.id not in folded_indexes else 0.0 for p in game.players])
+
+            action, player_previous_bet = game.players[active_player].act(round_number=round_number, table_highest_bet=table_highest_bet)
+            print(active_player, action)
 
             # Record the round number, relative position to the button, and action taken
             logistic_state = [round_number / 3.0, abs(active_player - button_position) / 5.0, action_to_int(action) / 3.0]
@@ -239,19 +258,26 @@ def simulate_game(game: PokerGame, button_position: int):
             player_outcomes[winner] = game.pot
             return player_outcomes, player_data
         
-        if turns >= remaining and check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes):
+        if turns >= remaining and check_bets(players=game.players, table_highest_bet=table_highest_bet, excluded_players=folded_indexes) or raises >= 6 - len(folded_indexes) - 1:
             round_finished = True
 
         active_player = (active_player + 1) % game.NUM_PLAYERS
 
     best_hands = []
-    for p in game.players:
-        best_hand = game.find_hand(p.readable_hand + game.board)
-        print(f"Best hand possible for {p.id} is {best_hand[0]} with {best_hand[1]}.")
-        best_hands.append(best_hand)
+    remaining_players = []
+    for i, p in enumerate(game.players):
+        if p.id not in folded_indexes:
+            best_hand = game.find_hand(p.readable_hand + game.board)
+            print(f"Best hand possible for {p.id} is {best_hand[0]} with {best_hand[1]}.")
+            best_hands.append(best_hand)
+            remaining_players.append(i)
     winning_hand = game.best_hand(best_hands)
-    winning_player = game.players[best_hands.index(winning_hand)]
-    print(f"Winner of this round is {winning_player.id} with {winning_hand[0]}")
+    winning_player = remaining_players[best_hands.index(winning_hand)]
+    print(f"Winner of this round is {winning_player} with {winning_hand[0]}")
+    player_outcomes[winning_player] = game.pot
+    for i in range(6):
+        if i not in folded_indexes and i != winning_player:
+            player_outcomes[i] = -1 * game.players[i].current_bet
 
 
     return player_outcomes, player_data
@@ -303,25 +329,10 @@ for i in range(game_iterations):
         random_training_data[i].extend(player_data[i])
 
 
+
+# Save to file
 for i in range(6):
-    np.save(f"player_{i}_state_data.npy", np.array(random_training_data[i]))
+    file = np.array(random_training_data[i])
+    np.save(f"player_{i}_state_data.npy", file)
 
     
-
-
-
-
-"""
-Generates playing data from random play, with incomplete information.
-
-Data is of the format:
-(
-((player_cards), (community_cards), pot_size, (player_chips), round_num, (all_previous_actions)),
-((next_player_cards), (next_community_cards), next_pot_size, (next_player_chips), next_round_num, (updated_actions)),
-round_action,
-round_reward,
-end_of_game,
-button_position
-)
-"""
-
