@@ -6,6 +6,7 @@ class RandomPlayer:
     def __init__(self, id: int, starting_fortune: float, raise_factor: float) -> None:
         self.id = id
         self.current_bet = 0
+        self.previous_bet = 0
         self.actions = ["fold", "raise", "call", "check"]
         self.balance = starting_fortune
         self.raise_factor = raise_factor

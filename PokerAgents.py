@@ -9,9 +9,9 @@ class ActorCriticRNN(tf.keras.Model):
         self.critic = tf.keras.layers.Dense(1)
         self.common = tf.keras.layers.LSTM(num_units, return_sequences=True, return_state=True)
 
-        def call(self, inputs: tf.Tensor, states=None, return_state=False, training=False):
-            x = self.common(inputs)
-            return self.actor(x), self.critic(x)
+    def call(self, inputs: tf.Tensor, states=None, return_state=False, training=False):
+        x = self.common(inputs)
+        return self.actor(x), self.critic(x)
         
 
 

@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import gymnasium as gym
+from PokerGame import PokerGame
 
 
 class PokerGameEnvironment(gym.Env):
@@ -101,10 +102,10 @@ class PokerGameEnvironment(gym.Env):
         
 
         self.state = {
-            "chips": chips,
-            "current_bet": cur_bet,
-            "previous_bet": previous_bet,
-            "pot_size": pot,
+            "chips": np.array([chips], dtype=np.float32),
+            "current_bet": np.array([cur_bet], dtype=np.float32),
+            "previous_bet": np.array([previous_bet], dtype=np.float32),
+            "pot_size": np.array([pot], dtype=np.float32),
             "other_player_bets": other_bets,
             "player_cards": player_cards,
             "community_cards": community_cards
@@ -128,6 +129,18 @@ class PokerGameEnvironment(gym.Env):
 
     def array_to_cards(self, array):
         return 0
+    
+    def cards_to_array(self, cards, community=False):
+        if community:
+            card_array = [0] * 5 * self.NUM_CARDS
+            for i, card in enumerate(cards):
+                card_array[card.suit * 13 + card.rank - 1 + 52 * i] = 1
+            return np.array(card_array, dtype=np.int8)
+        else:
+            card_array = [0] * len(cards) * self.NUM_CARDS
+            for i, card in enumerate(cards):
+                card_array[card.suit * 13 + card.rank - 1 + 52 * i] = 1
+            return np.array(card_array, dtype=np.int8)
 
     def render(self, mode="human"):
         print(f"Player chips: {self.state['chips'].item()}")
@@ -139,6 +152,23 @@ class PokerGameEnvironment(gym.Env):
     def close(self):
         pass
         
+
+    def update_state(self, game: PokerGame, player_index: int):
+        player = game.players[player_index]
+        other_bets = [p.current_bet for p in game.players]
+        other_bets.pop(player_index)
+
+        state = {
+            "chips": np.array([player.balance], dtype=np.float32),
+            "current_bet": np.array([player.current_bet], dtype=np.float32),
+            "previous_bet": np.array([player.previous_bet], dtype=np.float32),
+            "pot_size": np.array([game.pot], dtype=np.float32),
+            "other_player_bets": np.array(other_bets, dtype=np.float32),
+            "player_cards": self.cards_to_array(player.readable_hand),
+            "community_cards": self.cards_to_array(game.board, community=True)
+        }
+
+        self.state = state
 
         
 
