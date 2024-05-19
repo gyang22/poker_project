@@ -1,57 +1,33 @@
-import gymnasium as gym
-from PokerGameEnvironment import PokerGameEnvironment
-from PokerAgents import ActorCriticRNN
-import tensorflow as tf
+from PokerAgents import DQN, DQNPokerAgent, ReplayMemory, Transition
 import numpy as np
-from PokerGame import PokerGame
+import torch
+from torch import nn 
+from PokerGameEnvironment import PokerGameEnvironment
 
+
+
+
+num_episodes = 1000
+update_freq = 10
 
 env = PokerGameEnvironment()
-model = ActorCriticRNN(num_actions=4)
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+agent = DQNPokerAgent(state_size=10, action_size=5)
 
-
-def act():
-    action_probabilites, value = model.call(tf.convert_to_tensor(env.flatten_state()), dtype=tf.float32)
-    action_probabilites = action_probabilites.numpy()[0]
-
-    action = np.random.choice(np.arange(len(action_probabilites)), p=action_probabilites)
-
-    return action, value
-
-def preflop(game: PokerGame, button_position: int):
-    active_player = (button_position + 1) % game.NUM_PLAYERS
-
-    for p in game.players:
-        p_cards = [game.deck.deal() for _ in range(2)]
-        p.add_to_hand(p_cards)
-
-    
-
-button_position = 0
-
-for episode in range(100):
+for episode in range(num_episodes):
+    state = env.reset()
     done = False
-    env.reset()
-    
-    players = []
-
-    game = PokerGame(env.SMALL_BLIND, env.BIG_BLIND, players)
-    folded_indexes = set()
-
-    button_position = (button_position + 1) % game.NUM_PLAYERS
 
     while not done:
-        
-        preflop(game, button_position)
-        
+        action = agent.select_action(state)
+        next_state, reward, done, _, _= env.step()
+        agent.remember(state, action, reward, next_state, done)
 
-        # check action validity
+        state = next_state
+        agent.train_step()
 
-        # simulate other player moves, how to update model 
+    agent.decay_epsilon()
+    
+    if episode % update_freq == 0:
+        agent.update_target_model()
 
-        action, value = act()
-
-        next_state, reward, done, _, _ = env.step(action)
-
-
+    print(f"Episode {episode} done.")

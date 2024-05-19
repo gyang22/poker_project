@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 import gymnasium as gym
 from PokerGame import PokerGame
 

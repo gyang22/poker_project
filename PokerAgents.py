@@ -1,18 +1,109 @@
-import tensorflow as tf
+import torch
+from torch import nn 
+from collections import deque, namedtuple
+import random
+import numpy as np
 
-class ActorCriticRNN(tf.keras.Model):
 
-    def __init__(self, num_actions: int, num_units=128):
-        super().__init__()
 
-        self.actor = tf.keras.layers.Dense(num_actions)
-        self.critic = tf.keras.layers.Dense(1)
-        self.common = tf.keras.layers.LSTM(num_units, return_sequences=True, return_state=True)
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done'))
 
-    def call(self, inputs: tf.Tensor, states=None, return_state=False, training=False):
-        x = self.common(inputs)
-        return self.actor(x), self.critic(x)
+class ReplayMemory:
+
+    def __init__(self, capacity):
+        self.memory = deque([], maxlen=capacity)
+    
+    def push(self, *args):
+        self.memory.append(Transition(*args))
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+    
+    def __len__(self):
+        return len(self.memory)
+
+
+
+class DQN(nn.Module):
+
+    def __init__(self, state_size, action_size):
+        super(DQN, self).__init__()
+        self.hidden = nn.Sequential(
+            nn.Linear(state_size, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, action_size)
+        )
+
+    def forward(self, x):
+        x = self.hidden(x)
+        return x
+
+
+class DQNPokerAgent:
+
+    def __init__(self, state_size, action_size, lr, gamma, epsilon, epsilon_decay, memory_capacity, batch_size):
+        self.state_size = state_size
+        self.action_size = action_size
+
+        self.model = DQN(state_size, action_size)
+
+        self.lr = lr
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+
+        self.memory = ReplayMemory(memory_capacity)
+
+        self.batch_size = batch_size
+
+        self.target_model = DQN(state_size, action_size)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         
+        self.update_target_model()
+
+        
+    def update_target_model(self):
+        self.target_model.load_state_dict(self.model.state_dict())
 
 
+    def select_action(self, state):
+        if np.random.rand() < self.epsilon:
+            return np.random.randint(self.action_size)
+        
+        state = torch.FloatTensor(state).unsqueeze(0)
+        q_vals = self.model(state)
+        
+        return q_vals.max(1)[1].item()
+    
 
+    def train_step(self):
+        if len(self.memory) < self.batch_size:
+            return
+        
+        transitions = self.memory.sample(self.batch_size)
+        batch = Transition(*zip(*transitions))
+
+        state_batch = torch.FloatTensor(batch.state)
+        action_batch = torch.LongTensor(batch.action).unsqueeze(1)
+        reward_batch = torch.FloatTensor(batch.reward)
+        next_state_batch = torch.FloatTensor(batch.next_state)
+        done_batch = torch.FloatTensor(batch.done)
+
+        current_q_values = self.model(state_batch).gather(1, action_batch)
+        next_q_values = self.target_model(next_state_batch).max(1)[0].detach()
+        expected_q_values = reward_batch + self.gamma * next_q_values * (1 - done_batch)
+
+        loss = nn.functional.mse_loss(current_q_values, expected_q_values.unsqueeze(1))
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+    
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.push((state, action, reward, next_state, done))
+
+
+    def decay_epsilon(self):
+        self.epsilon *= self.epsilon_decay
