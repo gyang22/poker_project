@@ -31,6 +31,7 @@ class PokerGame:
             self.players.append(p)
         self.pot = 0
         self.folded_indices = set()
+        self.highest_bet = 0
 
 
     """
