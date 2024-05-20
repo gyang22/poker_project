@@ -7,7 +7,7 @@ class RandomPlayer:
         self.id = id
         self.current_bet = 0
         self.previous_bet = 0
-        self.actions = ["fold", "raise", "call", "check"]
+        self.actions = ["fold", "raise", "call", "check"]   # TODO CHANGE
         self.balance = starting_fortune
         self.raise_factor = raise_factor
         self.hand = [0] * 104
@@ -17,7 +17,7 @@ class RandomPlayer:
     """
     Returns a str from ["fold", "raise", "call", "check"] or a subset depending on the current round, with uniform probability.
     """
-    def act(self, round_number: int, table_highest_bet: float):
+    def act(self, round_number: int, table_highest_bet: float, no_raises: bool):
 
         previous_bet = self.current_bet
 
@@ -27,7 +27,11 @@ class RandomPlayer:
 
             # If another player has a higher bet, raise, call, or fold.
             if table_highest_bet > self.current_bet:
-                action = np.random.choice(self.actions[:3], p=(0.15, 0.3, 0.55))
+                if no_raises:
+                    action = np.random.choice([self.actions[0]] + [self.actions[2]], p=(0.50, 0.50))
+                else:
+                    action = np.random.choice(self.actions[:3], p=(0.15, 0.3, 0.55))
+                
                 if action == "raise":
                     self.__raise(table_highest_bet)
                 elif action == "call":
@@ -35,11 +39,18 @@ class RandomPlayer:
                 elif action == "fold":
                     self.__fold()
 
-            # Otherwise, currently the highest bet or matching, raise or fold.
+            # Otherwise, player bet is equal 
             else:
-                action = np.random.choice(self.actions[:2], p=(0.1, 0.9))
+                print("ADADDDD", table_highest_bet, self.current_bet)
+                if no_raises:
+                    action = np.random.choice([self.actions[0]] + [self.actions[2]], p=(0.50, 0.50))
+                else:   # only applies to big blind
+                    action = np.random.choice(self.actions[:2], p=(0.1, 0.9))
+                
                 if action == "raise":
                     self.__raise(table_highest_bet)
+                elif action == "call":
+                    self.__call(table_highest_bet)
                 elif action == "fold":
                     self.__fold()
 

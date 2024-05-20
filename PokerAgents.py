@@ -43,9 +43,15 @@ class DQN(nn.Module):
 
 class DQNPokerAgent:
 
-    def __init__(self, state_size, action_size, lr, gamma, epsilon, epsilon_decay, memory_capacity, batch_size):
+    def __init__(self, state_size, action_size, lr, gamma, epsilon, epsilon_decay, memory_capacity, batch_size, starting_fortune):
         self.state_size = state_size
         self.action_size = action_size
+
+        self.hand = []
+        self.readable_hand = []
+        self.current_bet = 0
+        self.previous_bet = 0
+        self.balance = starting_fortune
 
         self.model = DQN(state_size, action_size)
 
@@ -63,19 +69,39 @@ class DQNPokerAgent:
         
         self.update_target_model()
 
+    def add_to_hand(self, cards):
+        self.readable_hand.extend(cards)
         
+    def bet(self, amount: float):
+        self.current_bet = min(self.balance, amount)
+        self.balance -= self.current_bet
+    
     def update_target_model(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
+    def is_all_in(self):
+        if self.balance == 0:
+            return True
+        return False
 
     def select_action(self, state):
         if np.random.rand() < self.epsilon:
-            return np.random.randint(self.action_size)
+            # Get the Q-values for the given state
+            state_tensor = torch.FloatTensor(state).unsqueeze(0)
+            q_vals = self.model(state_tensor)
+            
+            # Determine the range of Q-values
+            q_min, q_max = q_vals.min().item(), q_vals.max().item()
+            
+            # Generate a random action within the range of Q-values
+            random_action = q_min + (q_max - q_min) * torch.rand_like(q_vals)
+            
+            return random_action
         
-        state = torch.FloatTensor(state).unsqueeze(0)
-        q_vals = self.model(state)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        q_vals = self.model(state_tensor)
         
-        return q_vals.max(1)[1].item()
+        return q_vals
     
 
     def train_step(self):

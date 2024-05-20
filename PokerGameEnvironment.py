@@ -2,6 +2,8 @@ import numpy as np
 import gymnasium as gym
 from PokerGame import PokerGame
 from Card import Card
+import torch.nn.functional as F
+import torch
 
 
 class PokerGameEnvironment(gym.Env):
@@ -13,7 +15,6 @@ class PokerGameEnvironment(gym.Env):
     NUM_CARDS = 52
 
     def __init__(self, game: PokerGame, player_id: int):
-        super.__init__()
 
         """
         0 - fold
@@ -34,6 +35,8 @@ class PokerGameEnvironment(gym.Env):
             "community_cards": gym.spaces.Box(low=0, high=1, shape=(self.NUM_CARDS * 5,), dtype=np.int8)
         })
 
+        
+
         # Player observable state
         self.state = {
             "chips": np.array([1000], dtype=np.float32),
@@ -49,9 +52,10 @@ class PokerGameEnvironment(gym.Env):
         self.is_player_turn = self.player_id == 0
         self.game = game
         self.round_num = 0
+        self.game_data = []
 
     def flatten_state(self):
-        return np.array([val for val in self.state.values()]).flatten()
+        return np.concatenate([v.flatten() for v in self.state.values()])
 
 
     def verify_action_validity(self, action):
@@ -63,18 +67,127 @@ class PokerGameEnvironment(gym.Env):
     def bet_amount(self):
         pass
 
-    def update_other_players(self):
-        current_player = self.player_id + 1 % self.NUM_PLAYERS # presuming the player just played, next player
-        while current_player != self.player_id:
-            if current_player in self.game.folded_indices:
-                current_player += 1
-                pass
-
-            self.game.players[current_player].act()
+    def preflop(self, button):
+        no_raises = False
+        reward = 0
+        done = False
+        raises = 0
+        for current_player in range(self.NUM_PLAYERS):
+            self.game.players[current_player].add_to_hand([self.game.deck.deal() for _ in range(2)])
         
-    def step(self, action):
-        self.update_other_players()
+        current_player = (button + 1) % self.NUM_PLAYERS
 
+        # Small blind mandatory bet
+        self.game.players[current_player].bet(self.SMALL_BLIND)
+        print(f"Player {current_player} small blind {self.SMALL_BLIND}")
+        self.game.pot += self.SMALL_BLIND
+        current_player = (current_player + 1) % self.NUM_PLAYERS
+
+        # Big blind mandatory bet
+        self.game.players[current_player].bet(self.BIG_BLIND)
+        print(f"Player {current_player} big blind {self.BIG_BLIND}")
+        self.game.pot += self.BIG_BLIND
+        self.game.highest_bet = self.BIG_BLIND
+        raise_player = current_player
+        current_player = (current_player + 1) % self.NUM_PLAYERS
+
+        
+
+        while current_player != raise_player:
+            print(f"Raises: {raises}")
+            if current_player in self.game.folded_indices:
+                current_player = (current_player + 1) % self.NUM_PLAYERS
+                continue
+
+            player = self.game.players[current_player]
+            if current_player != self.player_id:
+                action, previous_bet = player.act(0, self.game.highest_bet, no_raises)
+                if action == "raise":
+                    self.game.highest_bet = player.get_current_bet()
+                    self.game.pot += self.game.highest_bet - previous_bet
+                    raise_player = current_player
+                    raises += 1
+                elif action == "call":
+                    self.game.highest_bet = player.get_current_bet()
+                    self.game.pot += self.game.highest_bet - previous_bet
+                    
+                elif action == "fold":
+                    self.game.folded_indices.add(current_player)
+                print(f"Player {current_player} " + str(action))
+                
+            else:       
+                player.previous_bet = player.current_bet
+                self.update_state()
+                logits = player.select_action(self.flatten_state())
+                possibilities = F.softmax(logits, dim=1)
+                action = torch.argmax(possibilities.flatten()).item()
+
+                print(f"Agent player {current_player} " + str(action))
+                
+                if action == 3 or action == 4:
+                    reward -= player.balance
+                    action = 0
+                if action == 0:
+                    reward -= player.current_bet
+                    done = True
+                elif action == 1:
+                    self.game.pot += self.game.highest_bet - player.current_bet
+                    player.bet(self.game.highest_bet - player.current_bet)
+                elif action == 2 and not no_raises:
+                    raise_factor = max(1, torch.log(possibilities.flatten())[2] + 2)
+                    self.game.pot += min(self.game.highest_bet * raise_factor, player.balance) - player.current_bet
+                    player.bet(min(self.game.highest_bet * raise_factor, player.balance) - player.current_bet)
+                    raise_player = current_player
+                    raises += 1
+                else:
+                    reward -= player.balance
+                    action = 0
+                    done = True
+                
+
+                current_data = [self.flatten_state(), action, reward, None, done]
+                self.game_data.append(current_data)
+                
+            if self.check_win():
+                print("Pot size", self.game.pot)
+                winner = set(range(self.NUM_PLAYERS)).difference(self.game.folded_indices).pop()
+                print(winner, "wins")
+                done = True
+        
+            if self.check_bets() or raises >= self.NUM_PLAYERS - len(self.game.folded_indices):
+                no_raises = True
+                print("no more raises")
+
+            if done:
+                break
+            current_player = (current_player + 1) % self.NUM_PLAYERS
+            
+
+    def check_win(self):
+        return len(self.game.players) - len(self.game.folded_indices) == 1
+
+    def check_bets(self):
+        return all([i in self.game.folded_indices or p.is_all_in() or p.current_bet == self.game.highest_bet for i, p in enumerate(self.game.players)])
+
+    
+
+    def softmax(self, logits):
+        exp_logits = np.exp(logits - np.max(logits))  # Subtract max for numerical stability
+        return exp_logits / np.sum(exp_logits)
+
+    
+    def play(self, button: int):
+        self.preflop(button)
+        self.flop()
+        self.turn()
+        self.river()
+        
+
+        #reward, done = self.player_move(action)
+
+        #return {"state": self.state, "reward": reward, "done": done, "bool": False, "data": {}}
+    
+    def player_move(self, action):
         assert self.action_space.contains(action), f"{action} is not a valid action."
         assert self.verify_action_validity(action), f"{action} cannot be done according to the game rules."
 
@@ -127,9 +240,7 @@ class PokerGameEnvironment(gym.Env):
             "community_cards": community_cards
         }
 
-        self.round_num += 1
-
-        return {"state": self.state, "reward": reward, "done": done, "bool": False, "data": {}}
+        return reward, done
     
 
     def reset(self):
