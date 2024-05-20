@@ -19,11 +19,15 @@ for episode in range(num_episodes):
 
     while not done:
         action = agent.select_action(state)
-        next_state, reward, done, _, _= env.step()
+        state_data = env.step()
+        next_state = state_data['state']
+        reward = state_data['reward']
+        done = state_data['done']
         agent.remember(state, action, reward, next_state, done)
 
         state = next_state
-        agent.train_step()
+        if done:
+            agent.train_step()
 
     agent.decay_epsilon()
     
