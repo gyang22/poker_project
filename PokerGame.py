@@ -30,6 +30,7 @@ class PokerGame:
         for p in players:
             self.players.append(p)
         self.pot = 0
+        self.folded_indices = set()
 
 
     """

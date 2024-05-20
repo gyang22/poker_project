@@ -1,6 +1,7 @@
 import numpy as np
 import gymnasium as gym
 from PokerGame import PokerGame
+from Card import Card
 
 
 class PokerGameEnvironment(gym.Env):
@@ -11,7 +12,7 @@ class PokerGameEnvironment(gym.Env):
     BIG_BLIND = 20
     NUM_CARDS = 52
 
-    def __init__(self):
+    def __init__(self, game: PokerGame, player_id: int):
         super.__init__()
 
         """
@@ -44,6 +45,11 @@ class PokerGameEnvironment(gym.Env):
             "community_cards": np.zeros(shape=(self.NUM_CARDS * 5), dtype=np.int8)
         }
 
+        self.player_id = player_id
+        self.is_player_turn = self.player_id == 0
+        self.game = game
+        self.round_num = 0
+
     def flatten_state(self):
         return np.array([val for val in self.state.values()]).flatten()
 
@@ -56,8 +62,19 @@ class PokerGameEnvironment(gym.Env):
 
     def bet_amount(self):
         pass
+
+    def update_other_players(self):
+        current_player = self.player_id + 1 % self.NUM_PLAYERS # presuming the player just played, next player
+        while current_player != self.player_id:
+            if current_player in self.game.folded_indices:
+                current_player += 1
+                pass
+
+            self.game.players[current_player].act()
         
     def step(self, action):
+        self.update_other_players()
+
         assert self.action_space.contains(action), f"{action} is not a valid action."
         assert self.verify_action_validity(action), f"{action} cannot be done according to the game rules."
 
@@ -110,6 +127,8 @@ class PokerGameEnvironment(gym.Env):
             "community_cards": community_cards
         }
 
+        self.round_num += 1
+
         return self.state, reward, done, False, {}
     
 
@@ -126,8 +145,15 @@ class PokerGameEnvironment(gym.Env):
         return self.state
     
 
-    def array_to_cards(self, array):
-        return 0
+    def array_to_cards(self, array: np.ndarray):
+        hand = []
+        for i in range(len(array) // 52):
+            card = array[52*i:52*(i+1)]
+            suit = card.to_list().index(1) // 13
+            rank = card.to_list().index(1) % 13
+            hand.append(Card(suit, rank))
+
+        return hand
     
     def cards_to_array(self, cards, community=False):
         if community:
@@ -152,19 +178,19 @@ class PokerGameEnvironment(gym.Env):
         pass
         
 
-    def update_state(self, game: PokerGame, player_index: int):
-        player = game.players[player_index]
-        other_bets = [p.current_bet for p in game.players]
-        other_bets.pop(player_index)
+    def update_state(self):
+        player = self.game.players[self.player_id]
+        other_bets = [p.current_bet for p in self.game.players]
+        other_bets.pop(self.player_id)
 
         state = {
             "chips": np.array([player.balance], dtype=np.float32),
             "current_bet": np.array([player.current_bet], dtype=np.float32),
             "previous_bet": np.array([player.previous_bet], dtype=np.float32),
-            "pot_size": np.array([game.pot], dtype=np.float32),
+            "pot_size": np.array([self.game.pot], dtype=np.float32),
             "other_player_bets": np.array(other_bets, dtype=np.float32),
             "player_cards": self.cards_to_array(player.readable_hand),
-            "community_cards": self.cards_to_array(game.board, community=True)
+            "community_cards": self.cards_to_array(self.game.board, community=True)
         }
 
         self.state = state
