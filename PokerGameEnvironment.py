@@ -129,7 +129,7 @@ class PokerGameEnvironment(gym.Env):
 
         self.round_num += 1
 
-        return self.state, reward, done, False, {}
+        return {"state": self.state, "reward": reward, "done": done, "bool": False, "data": {}}
     
 
     def reset(self):
