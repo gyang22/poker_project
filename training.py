@@ -31,9 +31,11 @@ for episode in range(num_episodes):
     state = env.reset()
     done = False
     
-    data, total_reward = env.play(button)
+    data, total_reward, winner = env.play(button)
 
     reward_results.append(total_reward)
+    if winner:
+        env.game.players[winner].balance += total_reward
     
     rewards = split_reward(total_reward, data)
 

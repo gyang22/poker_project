@@ -109,8 +109,10 @@ class PokerGameEnvironment(gym.Env):
                     self.game.folded_indices.add(current_player)
                 print(f"Player {current_player} " + str(action))
                 
-            else:       
+            else:      
                 player.previous_bet = player.current_bet
+                print(self.state)
+                print(self.game.players[self.player_id].balance)
                 self.update_state()
                 logits = player.select_action(self.flatten_state())
                 possibilities = F.softmax(logits, dim=1)
@@ -283,9 +285,12 @@ class PokerGameEnvironment(gym.Env):
             winning_hand = self.game.best_hand(best_hands)
             winning_player = remaining_players[best_hands.index(winning_hand)]
             print(f"Winner of this round is {winning_player} with {winning_hand[0]}")
+        else:
+            winning_player = None
         done = True
         
-        return self.game_data, reward
+        
+        return self.game_data, reward, winning_player
     
     def reset(self):
         self.state = {
