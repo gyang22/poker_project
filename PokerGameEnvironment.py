@@ -78,7 +78,7 @@ class PokerGameEnvironment(gym.Env):
         self.game.players[current_player].bet(self.SMALL_BLIND)
         print(f"Player {current_player} small blind {self.SMALL_BLIND}")
         self.game.pot += self.SMALL_BLIND
-        current_player = (current_player + 1) % self.NUM_PLAYERS
+        current_player = self.next_player(current_player)
 
         # Big blind mandatory bet
         self.game.players[current_player].bet(self.BIG_BLIND)
@@ -86,11 +86,11 @@ class PokerGameEnvironment(gym.Env):
         self.game.pot += self.BIG_BLIND
         self.game.highest_bet = self.BIG_BLIND
         raise_player = current_player
-        current_player = (current_player + 1) % self.NUM_PLAYERS
+        current_player = self.next_player(current_player)
 
         while current_player != raise_player:
             if current_player in self.game.folded_indices:
-                current_player = (current_player + 1) % self.NUM_PLAYERS
+                current_player = self.next_player(current_player)
                 continue
 
             player = self.game.players[current_player]
@@ -138,7 +138,6 @@ class PokerGameEnvironment(gym.Env):
                     action = 0
                     done = True
                 
-
                 current_data = [self.flatten_state(), action, reward, None, done]
                 self.game_data.append(current_data)
                 
@@ -151,10 +150,9 @@ class PokerGameEnvironment(gym.Env):
             if self.check_bets() or raises >= self.NUM_PLAYERS - len(self.game.folded_indices):
                 no_raises = True
             
-
             if done:
                 break
-            current_player = (current_player + 1) % self.NUM_PLAYERS
+            current_player = self.next_player(current_player)
         
         return done, reward
 
@@ -162,7 +160,7 @@ class PokerGameEnvironment(gym.Env):
         if self.round_num == 1:
             self.game.flop() # flop the cards onto the board
         elif self.round_num == 2:
-            self.game.turn()
+            self.game.turn()    
         else:
             self.game.river()
             
@@ -178,7 +176,7 @@ class PokerGameEnvironment(gym.Env):
 
         while current_player != raise_player:
             if current_player in self.game.folded_indices:
-                current_player = (current_player + 1) % self.NUM_PLAYERS
+                current_player = self.next_player(current_player)
                 continue
             
             player = self.game.players[current_player]
@@ -204,13 +202,7 @@ class PokerGameEnvironment(gym.Env):
                     self.game.pot += self.game.highest_bet - previous_bet
                 print(f"Player {current_player} " + str(action))
 
-            else:       
-                """
-                0 - fold
-                1 - call
-                2 - raise
-                3 - check
-                """
+            else:   # current player is our player
                 player.previous_bet = player.current_bet
                 self.update_state()
                 logits = player.select_action(self.flatten_state())
@@ -239,10 +231,8 @@ class PokerGameEnvironment(gym.Env):
                     action = 0
                     done = True
                 
-
                 current_data = [self.flatten_state(), action, reward, None, done]
                 self.game_data.append(current_data)
-
 
             if self.check_win():
                 print("Pot size", self.game.pot)
@@ -253,29 +243,22 @@ class PokerGameEnvironment(gym.Env):
             if self.check_bets() or raises >= self.NUM_PLAYERS - len(self.game.folded_indices):
                 no_raises = True
             
-
             if done:
                 break
-            current_player = (current_player + 1) % self.NUM_PLAYERS
+            current_player = self.next_player(current_player)
 
         return done, reward
-
-
-            
 
     def check_win(self):
         return len(self.game.players) - len(self.game.folded_indices) == 1
 
     def check_bets(self):
-        return all([i in self.game.folded_indices or p.is_all_in() or p.current_bet == self.game.highest_bet for i, p in enumerate(self.game.players)])
-
-    
+        return all([i in self.game.folded_indices or p.is_all_in() or p.current_bet == self.game.highest_bet for i, p in enumerate(self.game.players)]) 
 
     def softmax(self, logits):
         exp_logits = np.exp(logits - np.max(logits))  # Subtract max for numerical stability
         return exp_logits / np.sum(exp_logits)
-
-    
+  
     def play(self, button: int):
         cum_reward = 0
         print(f"Round number {self.round_num}")
@@ -288,7 +271,6 @@ class PokerGameEnvironment(gym.Env):
                 done, reward = self.normal_round(button)
                 cum_reward += reward
                 
-
         if not done:
             best_hands = []
             remaining_players = []
@@ -305,8 +287,6 @@ class PokerGameEnvironment(gym.Env):
         
         return self.game_data, reward
     
-    
-
     def reset(self):
         self.state = {
             "chips": np.array([1000], dtype=np.float32),
@@ -322,7 +302,6 @@ class PokerGameEnvironment(gym.Env):
         self.game_data = []
         return self.state
     
-
     def array_to_cards(self, array: np.ndarray):
         hand = []
         for i in range(len(array) // 52):
@@ -355,7 +334,6 @@ class PokerGameEnvironment(gym.Env):
     def close(self):
         pass
         
-
     def update_state(self):
         player = self.game.players[self.player_id]
         other_bets = [p.current_bet for p in self.game.players]
@@ -373,11 +351,5 @@ class PokerGameEnvironment(gym.Env):
 
         self.state = state
 
-        
-
-
-"""
-Making it more concise
-"""
-def next_player(self, current_player):
-    current_player = (current_player + 1) % self.NUM_PLAYERS
+    def next_player(self, current_player):
+        return (current_player + 1) % self.NUM_PLAYERS
