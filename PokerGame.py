@@ -112,7 +112,8 @@ class PokerGame:
     def clear_game(self):
         self.deck = Deck()
         for p in self.players:
-            p.hand = []
+            p.hand = [0] * 104
+            p.readable_hand = []
         self.board = []
 
 

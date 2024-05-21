@@ -41,7 +41,6 @@ class RandomPlayer:
 
             # Otherwise, player bet is equal 
             else:
-                print("ADADDDD", table_highest_bet, self.current_bet)
                 if no_raises:
                     action = np.random.choice([self.actions[0]] + [self.actions[2]], p=(0.50, 0.50))
                 else:   # only applies to big blind

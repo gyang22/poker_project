@@ -15,7 +15,7 @@ update_freq = 10
 starting_fortune = 1000.0
 raise_factor = 1.2
 
-agent = DQNPokerAgent(state_size=373, action_size=5, lr=0.0001, gamma=0.99, epsilon=0.9, 
+agent = DQNPokerAgent(state_size=373, action_size=4, lr=0.0001, gamma=0.99, epsilon=0.9, 
                       epsilon_decay=0.05, memory_capacity=600, batch_size=64, starting_fortune=starting_fortune)
 
 env = PokerGameEnvironment(PokerGame(1, 2, 

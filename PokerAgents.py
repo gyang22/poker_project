@@ -47,7 +47,7 @@ class DQNPokerAgent:
         self.state_size = state_size
         self.action_size = action_size
 
-        self.hand = []
+        self.hand = [0] * 104
         self.readable_hand = []
         self.current_bet = 0
         self.previous_bet = 0
@@ -70,6 +70,8 @@ class DQNPokerAgent:
         self.update_target_model()
 
     def add_to_hand(self, cards):
+        for i, card in enumerate(cards):
+            self.hand[card.suit * 13 + card.rank - 1 + 52 * i] += 1
         self.readable_hand.extend(cards)
         
     def bet(self, amount: float):
