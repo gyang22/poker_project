@@ -27,9 +27,11 @@ for episode in range(num_episodes):
     done = False
     
     data = env.play(button)
-            
-    # for state in data:
-        #agent.remember(state, action, reward, next_state, done)
+    
+    for entry in data: #current_data = [self.flatten_state(), action, reward, None, done]
+        state = entry[0]
+
+        agent.remember(state, action, reward, next_state, done)
 
     #agent.train_step()
 

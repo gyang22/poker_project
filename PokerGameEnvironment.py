@@ -302,60 +302,6 @@ class PokerGameEnvironment(gym.Env):
         
         return self.game_data
     
-    def player_move(self, action):
-        assert self.action_space.contains(action), f"{action} is not a valid action."
-        assert self.verify_action_validity(action), f"{action} cannot be done according to the game rules."
-
-        chips = self.state["chips"].item()
-        cur_bet = self.state["current_bet"].item()
-        previous_bet = cur_bet
-        pot = self.state["pot_size"].item()
-        other_bets = self.state["other_player_bets"]
-        player_cards = self.state["player_cards"]
-        community_cards = self.state["community_cards"]
-
-        # Fold ends game and sets reward to lose current bet
-        if action == 0:
-            reward = -cur_bet
-            done = True
-        # Call gives no immediate reward and updates the player's bet to the current max bet
-        elif action == 1:
-            reward = 0
-            done = False
-            cur_bet = max(other_bets)
-            pot += max(0, cur_bet - previous_bet)
-            chips -= max(0, cur_bet - previous_bet)
-        # Raises by the amount determined by another function and updates the state information
-        elif action == 2:
-            reward = 0
-            done = False
-            cur_bet += self.raise_amount()
-            pot += max(0, cur_bet - previous_bet)
-            chips -= max(0, cur_bet - previous_bet)
-        # Check changes nothing about the player's own state and passes to next player
-        elif action == 3:
-            reward = 0
-            done = False
-        # Bet if there are no other bets and change state information
-        elif action == 4:
-            reward = 0
-            done = False
-            cur_bet += self.bet_amount()
-            pot += max(0, cur_bet - previous_bet)
-            chips -= max(0, cur_bet - previous_bet)
-        
-
-        self.state = {
-            "chips": np.array([chips], dtype=np.float32),
-            "current_bet": np.array([cur_bet], dtype=np.float32),
-            "previous_bet": np.array([previous_bet], dtype=np.float32),
-            "pot_size": np.array([pot], dtype=np.float32),
-            "other_player_bets": other_bets,
-            "player_cards": player_cards,
-            "community_cards": community_cards
-        }
-
-        return reward, done
     
 
     def reset(self):
@@ -427,5 +373,8 @@ class PokerGameEnvironment(gym.Env):
         
 
 
-
-
+"""
+Making it more concise
+"""
+def next_player(self, current_player):
+    current_player = (current_player + 1) % self.NUM_PLAYERS
