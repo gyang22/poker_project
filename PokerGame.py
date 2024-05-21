@@ -25,6 +25,7 @@ class PokerGame:
         self.min_bet = min_bet
         self.max_bet = max_bet
         self.deck = Deck()
+        self.deck.shuffle()
         self.board = []
         self.players = []
         for p in players:
@@ -111,10 +112,14 @@ class PokerGame:
     """
     def clear_game(self):
         self.deck = Deck()
+        self.deck.shuffle()
         for p in self.players:
             p.hand = [0] * 104
             p.readable_hand = []
         self.board = []
+        self.pot = 0
+        self.folded_indices = set()
+        self.highest_bet = 0
 
 
     def __pre_flop(self):

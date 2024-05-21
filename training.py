@@ -6,8 +6,13 @@ from PokerGameEnvironment import PokerGameEnvironment
 from PokerGame import PokerGame
 from RandomPlayer import RandomPlayer
 import gymnasium as gym
+import matplotlib.pyplot as plt
 
 
+def split_reward(reward: float, data: list):
+    return [reward / len(data) for _ in range(len(data))]
+
+reward_results = []
 
 num_episodes = 1000
 update_freq = 10
@@ -26,19 +31,39 @@ for episode in range(num_episodes):
     state = env.reset()
     done = False
     
-    data = env.play(button)
+    data, total_reward = env.play(button)
+
+    reward_results.append(total_reward)
     
-    for entry in data: #current_data = [self.flatten_state(), action, reward, None, done]
+    rewards = split_reward(total_reward, data)
+
+    shifted_data = data[1:] + [None]
+    
+    for entry, reward, next_entry in zip(data, rewards, shifted_data): #current_data = [self.flatten_state(), action, reward, None, done]
         state = entry[0]
+        action = entry[1]
+        if next_entry:
+            next_state = next_entry[0]
+            agent.remember(state, action, reward, next_state, done)
+        else:
+            next_state = state
+            agent.remember(state, action, reward, next_state, True)
 
-        agent.remember(state, action, reward, next_state, done)
+    agent.train_step()
 
-    #agent.train_step()
-
-    #agent.decay_epsilon()
+    agent.decay_epsilon()
     
-    #if episode % update_freq == 0:
-        #agent.update_target_model()
+    if episode % update_freq == 0:
+        agent.update_target_model()
 
     print(f"Episode {episode} done.")
     button = button + 1 % env.NUM_PLAYERS
+
+
+
+
+x_values = list(range(len(reward_results)))
+
+
+plt.plot(x_values, reward_results)
+plt.show()
