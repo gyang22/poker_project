@@ -7,14 +7,21 @@ from PokerGame import PokerGame
 from RandomPlayer import RandomPlayer
 import gymnasium as gym
 import matplotlib.pyplot as plt
+import time
+
 
 
 def split_reward(reward: float, data: list):
     return [reward / len(data) for _ in range(len(data))]
 
+
+start_time = time.time()
+
+
 reward_results = []
 
-num_episodes = 1000
+
+num_episodes = 100000
 update_freq = 10
 
 starting_fortune = 1000.0
@@ -36,6 +43,7 @@ for episode in range(num_episodes):
     reward_results.append(total_reward)
     if winner:
         env.game.players[winner].balance += total_reward
+
     
     rewards = split_reward(total_reward, data)
 
@@ -57,15 +65,18 @@ for episode in range(num_episodes):
     
     if episode % update_freq == 0:
         agent.update_target_model()
+        env.game = PokerGame(1, 2, 
+                [RandomPlayer(i, starting_fortune=starting_fortune, raise_factor=raise_factor) for i in range(5)] + [agent])
+        env.game.players[env.player_id].balance = starting_fortune
+        
 
     print(f"Episode {episode} done.")
+    print(f"Total reward {total_reward}.")
     button = button + 1 % env.NUM_PLAYERS
 
+end_time = time.time()
 
+print(f"Training took {end_time - start_time} seconds to complete.")
 
-
-x_values = list(range(len(reward_results)))
-
-
-plt.plot(x_values, reward_results)
+plt.plot(reward_results)
 plt.show()

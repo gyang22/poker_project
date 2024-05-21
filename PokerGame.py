@@ -116,6 +116,8 @@ class PokerGame:
         for p in self.players:
             p.hand = [0] * 104
             p.readable_hand = []
+            p.current_bet = 0
+            p.previous_bet = 0
         self.board = []
         self.pot = 0
         self.folded_indices = set()
