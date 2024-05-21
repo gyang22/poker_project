@@ -156,7 +156,7 @@ class PokerGameEnvironment(gym.Env):
                 break
             current_player = (current_player + 1) % self.NUM_PLAYERS
         
-        return done
+        return done, reward
 
     def normal_round(self, button: int):
         if self.round_num == 1:
@@ -258,7 +258,7 @@ class PokerGameEnvironment(gym.Env):
                 break
             current_player = (current_player + 1) % self.NUM_PLAYERS
 
-        return done
+        return done, reward
 
 
             
@@ -277,13 +277,16 @@ class PokerGameEnvironment(gym.Env):
 
     
     def play(self, button: int):
+        cum_reward = 0
         print(f"Round number {self.round_num}")
-        done = self.preflop(button)
+        done, reward = self.preflop(button)
+        cum_reward += reward
         for _ in range(3):
             if not done:
                 self.round_num += 1
                 print(f"Round number {self.round_num}")
-                done = self.normal_round(button)
+                done, reward = self.normal_round(button)
+                cum_reward += reward
                 
 
         if not done:
@@ -300,7 +303,7 @@ class PokerGameEnvironment(gym.Env):
             print(f"Winner of this round is {winning_player} with {winning_hand[0]}")
         done = True
         
-        return self.game_data
+        return self.game_data, reward
     
     
 
