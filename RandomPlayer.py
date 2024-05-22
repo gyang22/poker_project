@@ -30,7 +30,7 @@ class RandomPlayer:
                 if no_raises:
                     action = np.random.choice([self.actions[0]] + [self.actions[2]], p=(0.30, 0.70))
                 else:
-                    action = np.random.choice(self.actions[:3], p=(0.15, 0.3, 0.55))
+                    action = np.random.choice(self.actions[:3], p=(0.60, 0.15, 0.25)) #.15/.3/.55
                 
                 if action == "raise":
                     self.__raise(table_highest_bet)
@@ -70,7 +70,7 @@ class RandomPlayer:
 
             # Otherwise, currently the highest bet or matching, raise, fold, or check.
             else:
-                action = np.random.choice(self.actions[:2] + self.actions[3:], p=(0.15, 0.3, 0.55))
+                action = np.random.choice(self.actions[:2] + self.actions[3:], p=(0.60, 0.15, 0.25)) # 0.15, 0.3, 0.55
                 if action == "raise":
                     self.__raise(table_highest_bet)
                 elif action == "fold":

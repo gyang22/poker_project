@@ -20,6 +20,12 @@ start_time = time.time()
 
 reward_results = []
 
+cumulative_reward = 0
+cumulative_rewards = []
+
+action_ratios = [[0] * 4]
+era = 0
+
 num_episodes = 10000
 update_freq = 10
 
@@ -27,7 +33,7 @@ starting_fortune = 1000.0
 raise_factor = 1.2
 
 agent = DQNPokerAgent(state_size=373, action_size=4, lr=0.0001, gamma=0.99, epsilon=0.95, 
-                      epsilon_decay=0.999, min_epsilon=0.05, memory_capacity=2000, batch_size=64, starting_fortune=starting_fortune)
+                      epsilon_decay=0.999, min_epsilon=0.05, memory_capacity=2000, batch_size=128, starting_fortune=starting_fortune)
 
 actions = [0] * agent.action_size
 
@@ -43,6 +49,9 @@ for episode in range(num_episodes):
 
     reward_results.append(total_reward)
 
+    cumulative_reward += total_reward
+    cumulative_rewards.append(cumulative_reward)
+
     
     rewards = split_reward(total_reward, data)
 
@@ -52,6 +61,7 @@ for episode in range(num_episodes):
         state = entry[0]
         action = entry[1]
         actions[action] += 1
+        action_ratios[era][action] += 1
         net_reward = reward + entry[2]
         done = entry[4]
         if next_entry:
@@ -71,6 +81,9 @@ for episode in range(num_episodes):
         env.game = PokerGame(1, 2, 
                 [RandomPlayer(i, starting_fortune=starting_fortune, raise_factor=raise_factor) for i in range(5)] + [agent])
         env.game.players[env.player_id].balance = starting_fortune
+        action_ratios.append([0] * 4)
+        era += 1
+
         
 
     print(f"Episode {episode} done.")
@@ -86,21 +99,29 @@ print(actions)
 
 
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 7))
+fig, axs  = plt.subplots(2, 2, figsize=(15, 8))
 
-ax1.plot(reward_results)
-ax1.set_title('Reward By Episode')
-ax1.set_xlabel('Episode')
-ax1.set_ylabel('Reward')
+axs[0, 0].plot(reward_results)
+axs[0, 0].set_title('Reward By Episode')
+axs[0, 0].set_xlabel('Episode')
+axs[0, 0].set_ylabel('Reward')
 
 labels = ["fold", "call", "raise", "check"]
-ax2.bar(labels, actions)
-ax2.set_title('Action Count')
-ax2.set_xlabel('Action')
-ax2.set_ylabel('Number of Times Chosen')
+axs[0, 1].bar(labels, actions)
+axs[0, 1].set_title('Action Count')
+axs[0, 1].set_xlabel('Action')
+axs[0, 1].set_ylabel('Number of Times Chosen')
 
 for i, count in enumerate(actions):
-    plt.text(i, count + 0.5, str(count), ha='center')
+    axs[0, 1].text(i, count + 0.5, str(count), ha='center')
+
+axs[1, 0].plot(cumulative_rewards)
+axs[1, 0].set_title('Cumulative Reward Over Time')
+axs[1, 0].set_xlabel('Episode')
+axs[1, 0].set_ylabel('Cumulative Reward')
+
+for action_bar in action_ratios:
+    axs[1, 1].bar([0, 1, 2, 3], action_bar)
 
 plt.tight_layout()
 

@@ -117,6 +117,7 @@ class PokerGameEnvironment(gym.Env):
 
                 illegal_actions = [0] * 4
 
+
                 if player.current_bet < self.game.highest_bet:
                     illegal_actions[3] = 1
                 if no_raises:
@@ -128,18 +129,14 @@ class PokerGameEnvironment(gym.Env):
 
                 #print(f"Agent player {current_player} " + str(action))
                 
-                if action == 3 or action == 4:
-                    reward -= player.balance / 5
-                    action = 0
                 if action == 0:
                     reward -= player.current_bet
-                    reward -= 300 # punishment for folding
                     done = True
                 elif action == 1:
                     self.game.pot += self.game.highest_bet - player.current_bet
                     player.bet(self.game.highest_bet - player.current_bet)
                 elif action == 2 and not no_raises:
-                    raise_factor = float(max(1, torch.log(possibilities.flatten())[2] + 2))
+                    raise_factor = float(max(1, torch.log(possibilities.flatten())[2] + 2)) * 2
                     self.game.pot += min(self.game.highest_bet * raise_factor, player.balance) - player.current_bet
                     player.bet(min(self.game.highest_bet * raise_factor, player.balance) - player.current_bet)
                     raise_player = current_player
@@ -155,6 +152,8 @@ class PokerGameEnvironment(gym.Env):
             if self.check_win():
                 #print("Pot size", self.game.pot)
                 winner = set(range(self.NUM_PLAYERS)).difference(self.game.folded_indices).pop()
+                if winner != self.player_id:
+                    reward -= self.game.players[self.player_id].current_bet
                 #print(winner, "wins")
                 done = True
             else:
@@ -235,24 +234,19 @@ class PokerGameEnvironment(gym.Env):
                 
                 if action == 0: # fold
                     reward -= player.current_bet
-                    reward -= 300 # punishment for folding
                     done = True
                 elif action == 1: # call
                     self.game.pot += self.game.highest_bet - player.current_bet
                     player.bet(self.game.highest_bet - player.current_bet)
 
                 elif action == 2 and not no_raises: # raise
-                    raise_factor = float(max(1, torch.log(possibilities.flatten())[2] + 2))
+                    raise_factor = float(max(1, torch.log(possibilities.flatten())[2] + 2)) * 2
                     self.game.pot += min(self.game.highest_bet * raise_factor, player.balance) - player.current_bet
                     player.bet(min(self.game.highest_bet * raise_factor, player.balance) - player.current_bet)
                     raise_player = current_player
                     raises += 1
                 elif action == 3 and checking: # check
                     pass
-                else:   # checking if not allowed, raising if not allowed
-                    reward -= player.balance / 5
-                    action = 0
-                    done = True
                 
                 current_data = [self.flatten_state(), action, reward, None, done]
                 self.game_data.append(current_data)
@@ -261,6 +255,8 @@ class PokerGameEnvironment(gym.Env):
                 #print("Pot size", self.game.pot)
                 winner = set(range(self.NUM_PLAYERS)).difference(self.game.folded_indices).pop()
                 #print(winner, "wins")
+                if winner != self.player_id:
+                    reward -= self.game.players[self.player_id].current_bet
                 done = True
             else:
                 winner = None
@@ -311,7 +307,7 @@ class PokerGameEnvironment(gym.Env):
         if winning_player:
             self.game.players[winning_player].balance += self.game.pot
         if winning_player == self.player_id:
-            total_reward += self.game.pot * 5
+            total_reward += self.game.pot
         done = True
         
         

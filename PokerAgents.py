@@ -29,15 +29,17 @@ class DQN(nn.Module):
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
         self.hidden = nn.Sequential(
-            nn.Linear(state_size, 128),
+            nn.Linear(state_size, 512),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(512, 512),
+            nn.Sigmoid(),
+            nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(128, action_size)
+            nn.Linear(512, action_size)
         )
 
     def forward(self, x):
