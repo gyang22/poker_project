@@ -133,6 +133,7 @@ class PokerGameEnvironment(gym.Env):
                     action = 0
                 if action == 0:
                     reward -= player.current_bet
+                    reward -= 300 # punishment for folding
                     done = True
                 elif action == 1:
                     self.game.pot += self.game.highest_bet - player.current_bet
@@ -234,6 +235,7 @@ class PokerGameEnvironment(gym.Env):
                 
                 if action == 0: # fold
                     reward -= player.current_bet
+                    reward -= 300 # punishment for folding
                     done = True
                 elif action == 1: # call
                     self.game.pot += self.game.highest_bet - player.current_bet
@@ -309,7 +311,7 @@ class PokerGameEnvironment(gym.Env):
         if winning_player:
             self.game.players[winning_player].balance += self.game.pot
         if winning_player == self.player_id:
-            total_reward += self.game.pot
+            total_reward += self.game.pot * 5
         done = True
         
         

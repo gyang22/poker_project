@@ -20,7 +20,7 @@ start_time = time.time()
 
 reward_results = []
 
-num_episodes = 100000
+num_episodes = 10000
 update_freq = 10
 
 starting_fortune = 1000.0
@@ -42,8 +42,6 @@ for episode in range(num_episodes):
     data, total_reward, winner = env.play(button)
 
     reward_results.append(total_reward)
-    if winner:
-        env.game.players[winner].balance += total_reward
 
     
     rewards = split_reward(total_reward, data)
@@ -54,12 +52,15 @@ for episode in range(num_episodes):
         state = entry[0]
         action = entry[1]
         actions[action] += 1
+        net_reward = reward + entry[2]
+        done = entry[4]
         if next_entry:
             next_state = next_entry[0]
-            agent.remember(state, action, reward, next_state, done)
+            agent.remember(state, action, net_reward, next_state, done)
         else:
             next_state = state
-            agent.remember(state, action, reward, next_state, True)
+            done = True
+            agent.remember(state, action, net_reward, next_state, done)
 
     agent.train_step()
 
@@ -97,6 +98,9 @@ ax2.bar(labels, actions)
 ax2.set_title('Action Count')
 ax2.set_xlabel('Action')
 ax2.set_ylabel('Number of Times Chosen')
+
+for i, count in enumerate(actions):
+    plt.text(i, count + 0.5, str(count), ha='center')
 
 plt.tight_layout()
 

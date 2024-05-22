@@ -28,7 +28,7 @@ class RandomPlayer:
             # If another player has a higher bet, raise, call, or fold.
             if table_highest_bet > self.current_bet:
                 if no_raises:
-                    action = np.random.choice([self.actions[0]] + [self.actions[2]], p=(0.50, 0.50))
+                    action = np.random.choice([self.actions[0]] + [self.actions[2]], p=(0.30, 0.70))
                 else:
                     action = np.random.choice(self.actions[:3], p=(0.15, 0.3, 0.55))
                 
