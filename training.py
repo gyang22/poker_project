@@ -20,7 +20,7 @@ start_time = time.time()
 
 reward_results = []
 
-num_episodes = 5000
+num_episodes = 100000
 update_freq = 10
 
 starting_fortune = 1000.0
