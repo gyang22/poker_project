@@ -21,7 +21,6 @@ class PokerGameEnvironment(gym.Env):
         1 - call
         2 - raise
         3 - check
-        4 - bet
         """
         self.action_space = gym.spaces.Discrete(5)
 
@@ -115,8 +114,16 @@ class PokerGameEnvironment(gym.Env):
                 player.previous_bet = player.current_bet
                 
                 self.update_state()
-                logits = player.select_action(self.flatten_state())
-                possibilities = F.softmax(logits, dim=1)
+
+                illegal_actions = [0] * 4
+
+                if player.current_bet < self.game.highest_bet:
+                    illegal_actions[3] = 1
+                if no_raises:
+                    illegal_actions[2] = 1
+
+                logits = player.select_action(self.flatten_state(), illegal_actions)
+                possibilities = F.softmax(logits, dim=0)
                 action = torch.argmax(possibilities.flatten()).item()
 
                 #print(f"Agent player {current_player} " + str(action))
@@ -211,8 +218,16 @@ class PokerGameEnvironment(gym.Env):
             else:   # current player is our player
                 player.previous_bet = player.current_bet
                 self.update_state()
-                logits = player.select_action(self.flatten_state())
-                possibilities = F.softmax(logits, dim=1)
+
+                illegal_actions = [0] * 4
+
+                if player.current_bet < self.game.highest_bet:
+                    illegal_actions[3] = 1
+                if no_raises:
+                    illegal_actions[2] = 1
+
+                logits = player.select_action(self.flatten_state(), illegal_actions)
+                possibilities = F.softmax(logits, dim=0)
                 action = torch.argmax(possibilities.flatten()).item()
 
                 #print(f"Agent player {current_player} " + str(action))

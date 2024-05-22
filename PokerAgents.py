@@ -90,24 +90,17 @@ class DQNPokerAgent:
             return True
         return False
 
-    def select_action(self, state):
+    def select_action(self, state, illegal_actions):
+        mask = np.where(illegal_actions == 1, -np.inf, 0)
         if np.random.rand() < self.epsilon:
-            # Get the Q-values for the given state
-            state_tensor = torch.FloatTensor(state).unsqueeze(0)
-            q_vals = self.model(state_tensor)
-            
-            # Determine the range of Q-values
-            q_min, q_max = q_vals.min().item(), q_vals.max().item()
-            
-            # Generate a random action within the range of Q-values
-            random_action = q_min + (q_max - q_min) * torch.rand_like(q_vals)
-            
-            return random_action
-        
+            random_actions = torch.rand(4)
+            legal_choices = random_actions + mask
+            return legal_choices
+
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
         q_vals = self.model(state_tensor)
-        
-        return q_vals
+        legal_choices = q_vals.detach() + mask
+        return legal_choices
     
 
     def train_step(self):
