@@ -1,3 +1,2 @@
-more shuffles
-fix high card not being in combo
-implement betting
+implement more complex model structure
+add functionality to play against bot as human

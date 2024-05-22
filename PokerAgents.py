@@ -47,7 +47,8 @@ class DQN(nn.Module):
 
 class DQNPokerAgent:
 
-    def __init__(self, state_size, action_size, lr, gamma, epsilon, epsilon_decay, memory_capacity, batch_size, starting_fortune):
+    def __init__(self, state_size, action_size, lr, gamma, epsilon, epsilon_decay, min_epsilon,
+                memory_capacity, batch_size, starting_fortune):
         self.state_size = state_size
         self.action_size = action_size
 
@@ -63,6 +64,7 @@ class DQNPokerAgent:
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
+        self.min_epsilon = min_epsilon
 
         self.memory = ReplayMemory(memory_capacity)
 
@@ -131,4 +133,4 @@ class DQNPokerAgent:
 
 
     def decay_epsilon(self):
-        self.epsilon *= self.epsilon_decay
+        self.epsilon = max(self.min_epsilon, self.epsilon_decay * self.epsilon)

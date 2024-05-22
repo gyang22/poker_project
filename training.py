@@ -20,15 +20,16 @@ start_time = time.time()
 
 reward_results = []
 
-
-num_episodes = 1000
+num_episodes = 5000
 update_freq = 10
 
 starting_fortune = 1000.0
 raise_factor = 1.2
 
-agent = DQNPokerAgent(state_size=373, action_size=4, lr=0.0001, gamma=0.99, epsilon=0.9, 
-                      epsilon_decay=0.05, memory_capacity=2000, batch_size=64, starting_fortune=starting_fortune)
+agent = DQNPokerAgent(state_size=373, action_size=4, lr=0.0001, gamma=0.99, epsilon=0.95, 
+                      epsilon_decay=0.999, min_epsilon=0.05, memory_capacity=2000, batch_size=64, starting_fortune=starting_fortune)
+
+actions = [0] * agent.action_size
 
 env = PokerGameEnvironment(PokerGame(1, 2, 
     [RandomPlayer(i, starting_fortune=starting_fortune, raise_factor=raise_factor) for i in range(5)] + [agent]), 5)
@@ -52,6 +53,7 @@ for episode in range(num_episodes):
     for entry, reward, next_entry in zip(data, rewards, shifted_data): #current_data = [self.flatten_state(), action, reward, None, done]
         state = entry[0]
         action = entry[1]
+        actions[action] += 1
         if next_entry:
             next_state = next_entry[0]
             agent.remember(state, action, reward, next_state, done)
@@ -78,5 +80,24 @@ end_time = time.time()
 
 print(f"Training took {end_time - start_time} seconds to complete.")
 
-plt.plot(reward_results)
+
+print(actions)
+
+
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 7))
+
+ax1.plot(reward_results)
+ax1.set_title('Reward By Episode')
+ax1.set_xlabel('Episode')
+ax1.set_ylabel('Reward')
+
+labels = ["fold", "call", "raise", "check"]
+ax2.bar(labels, actions)
+ax2.set_title('Action Count')
+ax2.set_xlabel('Action')
+ax2.set_ylabel('Number of Times Chosen')
+
+plt.tight_layout()
+
 plt.show()
