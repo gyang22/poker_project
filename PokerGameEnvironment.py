@@ -14,7 +14,7 @@ class PokerGameEnvironment(gym.Env):
     BIG_BLIND = 20
     NUM_CARDS = 52
 
-    def __init__(self, game: PokerGame, player_id: int):
+    def __init__(self, game: PokerGame, player_id: int, compete=False):
 
         """
         0 - fold
@@ -44,11 +44,11 @@ class PokerGameEnvironment(gym.Env):
             "player_cards": np.zeros(shape=(self.NUM_CARDS * 2,), dtype=np.int8),
             "community_cards": np.zeros(shape=(self.NUM_CARDS * 5), dtype=np.int8)
         }
-
         self.player_id = player_id
         self.game = game
         self.round_num = 0
         self.game_data = []
+        self.compete_bool = compete
 
     def flatten_state(self):
         return np.concatenate([v.flatten() for v in self.state.values()])
@@ -312,6 +312,12 @@ class PokerGameEnvironment(gym.Env):
         
         
         return self.game_data, total_reward, winning_player
+
+    def compete(self, button):
+        if not self.compete_bool:
+            raise Exception("Not in compete mode.")
+        
+        
     
     def reset(self):
         self.state = {
