@@ -1,2 +1,0 @@
-implement more complex model structure
-add functionality to play against bot as human
